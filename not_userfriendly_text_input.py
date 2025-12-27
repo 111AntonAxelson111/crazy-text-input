@@ -5,9 +5,13 @@ import tkinter as tk
 
 JSON_FILE = "user_text.json"
 SIZE = 5# how many input slots
-SLEEP_TIME = 15  # seconds
 MAX_TIME = 1000
+
+sleep_time_key = "sleep_time"
+SLEEP_TIME = 15  # seconds
+user_sep_key = "input_sep"
 USER_SEP = "|"
+
 
 base_data = {
     "info":[" Write input where it is not X ",
@@ -15,7 +19,8 @@ base_data = {
             " Have '|' before and after your input text when your done writing",
             "example of valid input is:  '|hello |' "
             ],
-    "input_sep":USER_SEP
+    sleep_time_key:SLEEP_TIME,
+    user_sep_key:USER_SEP
 
     }
 
@@ -59,25 +64,22 @@ def open_file_in_texteditor(path):
 
 
 def loop_try_get_user_input():
+    global USER_SEP
+    global SLEEP_TIME
 
-    def write_new_sep_():
-        global USER_SEP
+    def get_new_sep():
 
         data = load_json()
-        new_sep = data.get("input_sep", "|")
+        new_sep = data.get(user_sep_key)
 
-        # If user changed the separator in the JSON file
-        if new_sep != USER_SEP:
-            USER_SEP = new_sep
+        return new_sep
+    
+    def get_new_sleep_time():
 
-            # Update info section to notify user
-            data["info"] = [
-                f"Separator changed to '{USER_SEP}'",
-                "Write your input using the new separator."
-            ]
+        data = load_json()
+        new_sleep_time = data.get(sleep_time_key)
 
-            save_json_atomic(data)
-            print(f"[INFO] Separator updated to: {USER_SEP}")
+        return new_sleep_time
 
     def load_json():
         with open(JSON_FILE, "r", encoding="utf-8") as f:
@@ -85,10 +87,17 @@ def loop_try_get_user_input():
 
     def save_json_atomic(data):
         """Write JSON atomically to avoid corruption."""
-        temp_file = JSON_FILE + ".tmp"
-        with open(temp_file, "w", encoding="utf-8") as f:
+        #temp_file = JSON_FILE + ".tmp"
+        with open(JSON_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-        os.replace(temp_file, JSON_FILE)  # atomic on Windows
+        #os.replace(temp_file, JSON_FILE)  # atomic on Windows
+
+    ##def save_json_atomic(data):
+    ##    """Write JSON atomically to avoid corruption."""
+    ##    temp_file = JSON_FILE + ".tmp"
+    ##    with open(temp_file, "w", encoding="utf-8") as f:
+    ##        json.dump(data, f, indent=2)
+    ##    os.replace(temp_file, JSON_FILE)  # atomic on Windows
 
     def reset_json_slots():
 
@@ -118,11 +127,14 @@ def loop_try_get_user_input():
         full_file_content[str(idx)] = value
         save_json_atomic(full_file_content)
 
-    def extract_input(user_input,user_sep):
+    def extract_input(user_input,USER_SEP):
         print("--")
         print("extracted text:",user_input)
         s = user_input.lower().strip()
-        parts = s.split(user_sep)
+        if s=="":
+            print("empty separator")
+            return None
+        parts = s.split(USER_SEP)
         if len(parts)==3:
             print("ok")
             print("--")
@@ -140,10 +152,11 @@ def loop_try_get_user_input():
     while elapsed_time < MAX_TIME:
         print("\n\n\n-----")
 
-        user_sep = write_new_sep_()
+        USER_SEP = get_new_sep()
+        SLEEP_TIME = get_new_sleep_time()
 
         user_input = json_read(cur_read_idx) 
-        result = extract_input(user_input,user_sep)
+        result = extract_input(user_input,USER_SEP)
 
         if result:
             return result
